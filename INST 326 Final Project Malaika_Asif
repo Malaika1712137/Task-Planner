@@ -1,0 +1,169 @@
+import re                               #library used for pattern matching
+from datetime import datetime           #library for data parsing and validation
+
+def validate_date (date_str):               #validates if the date string is in correct order YYYY-MM-DD
+    pattern = r"^\d{4}-\d{2}-\d{2}$"        #date structure
+    if re.match (pattern, date_str):        #check if the structre matches the pattern
+        try:
+            datetime.strptime (date_str, "%Y-%m-%d")        #Attempt to parse date (parse means to break the data in smaller part to analyze)
+            return True                                     #If no error, date is valid
+        except ValueError:
+            return False
+    return False                                            #structure did not match
+
+
+class StudyTask:                    #class to represents a study task with name, subject, and due date
+    def __init__ (self, name, subject, due_date):
+        self.name = name            #store task name
+        self.subject = subject      #store subject
+        self.due_date = due_date    #store due date
+    
+    def __str__ (self):             #string representation for displaying the task
+        return f"Task: {self.name} | Subject: {self.subject} | Due: {self.due_date}"
+    
+class PrayerLog:                    #manages prayer completion
+    def __init__(self):
+        self.prayers = {
+            "Fajr": "no",
+            "Dhuhr": "no",
+            "Asr": "no",
+            "Maghrib": "no",
+            "Isha": "no",}
+        
+    def log_prayer (self, prayer, status):                  #the status of a given prayer
+        if prayer in self.prayers:                          #check if valid prayer name
+            self.prayers [prayer] = status.lower()          #save status (yes/no)
+
+    def completion_status (self):           #count how many prayers are completed
+        completed = sum (1 for p in self.prayers.values() if p == "yes")
+        return f"Prayers completed: {completed}/5"
+    
+    def __str__ (self):                     #display prayers in a single line
+        return " | ".join([f"{p}: {s}" for p, s in self.prayers.items()])
+    
+class QuranProgress:                         #tracks quran reading
+    def __init__(self, pages = None, surahs = None):
+        self.pages = pages          #number of pages read
+        self.surahs = surahs        #number of surahs read
+
+    def __str__(self):              #display progress
+        if self.pages:
+            return f"Quran Progress: {self.pages} pages"
+        elif self.surahs:
+            return f"Quran Progress: Surahs - {self.surahs}"
+        return "No Quran Reading logged"
+    
+class IslamicDailyPlanner:                      #core class to manage everyhting
+    def __init__(self):
+        self.study_tasks = []                   #list to store study tasks
+        self.prayer_log = PrayerLog()           #prayer log instance
+        self.quran_progress = None              #Quran reading
+        self.reflection = None                  #user reflection
+
+    def add_study_task(self):
+        name = input ("Enter study task name")
+        subject = input ("Enter subject: ")
+
+        while True:                             #loop until valid date is entered
+            due_date = input ("Enter due date (YYYY-MM-DD): ")
+            if validate_date (due_date):
+                break
+            else:
+                print("Invalid date formate! ")
+        
+        task = StudyTask(name, subject, due_date)           #create study task object
+        self.study_tasks.append (task)                      #add to list
+        print ("Task added successfully! \n")               #confirm
+
+    def log_prayers(self):                                  #record prayer completion
+        print ("\nLog your prayer completion (yes/no):")
+        for prayer in self.prayer_log.prayers:              #loop through each prayer
+            status = input(f"Did you pray {prayer}? (yes/no): ").strip().lower()
+            while status not in ["yes", "no"]:           #validate answer
+                status = input("Invalid. Enter Yes or No: ").strip().lower()
+                self.prayer_log.log_prayer(prayer, status)      #save status
+        print ("Prayer log updated! \n")
+
+    def log_quran (self):
+        choice = input ("Did you read pages or surahs? (p/s): ")            #choose type
+        if choice == "p":
+            pages = input ("How many pages? ")
+            self.quran_progress = QuranProgress (pages=pages)
+        else:
+            surahs = input ("Which surahs? ")
+            self.quran_progress = QuranProgress (surahs = surahs)
+        print ("Quran progress logged!\n")
+
+    def write_to_file (self):                   #save all data to file
+        with open ("Daily_tasks.txt", "a") as file:     #open file
+            file.write ("===== Daily Log =====\n")      #section header
+
+            file.write ("Study Tasks:\n")
+            for task in self.study_tasks:               #Write each task
+                file.write(str(task) + "\n")
+
+            file.write ("\nPrayer Log:\n")
+            file.write (str(self.prayer_log) + "\n")
+            file.write (self.prayer_log.completion_status() + "\n")
+
+            file.write ("\nQuran Progress: \n")
+            file.write (str(self.quran_progress) + "\n")
+
+            if self.reflection:             #if reflection exists
+                file.write ("\nReflection:\n")
+                file.write (self.reflection + "\n")
+
+            file.write ("=============\n\n")            #End divider
+        print ("Data saved to Daily_Tasks.txt\n")
+
+    def daily_summary(self):
+        print ("\n====Daily Summary====")
+        print ("Study Tasks:")
+        for task in self.study_tasks:
+            print (task)
+
+        print ("\nPrayer Log: ")
+        print (self.prayer_log)         #print prayer statuses
+        print (self.prayer_log.completion_status())
+        print ("\nQuran Progress: ")
+        print (self.quran_progress)     #print reading progress
+
+        if self.reflection:
+            print ("\nReflection: ")
+            print (self.reflection)
+
+        print ("================\n")
+
+    def run(self):              #main intereactive loop
+        print ("welcome to the Islamic Daily Planner!\n")
+
+        while True:             #loop menu until exist
+            print ("1. Add Study Task")
+            print ("2. Log Prayers")
+            print ("3. Log Quran Reading")
+            print ("4. Add Reflection")
+            print ("5. View Summary")
+            print ("6. Save & Exist")
+           
+            choice = input ("Choose an option ")
+            print()
+
+            if choice == "1":
+                self.add_study_task()
+            elif choice == "2":
+                self.log_prayers()
+            elif choice == "3":
+                self.log_quran()
+            elif choice == "4":
+                self.reflection = input  ("Write your reflection: ")
+                print ("Reflection added!\n")
+            elif choice == "5":
+                self.write_to_file()
+                print ("Goodbye!")
+                break
+            else:
+                print ("Invalid choice! Try again. \n")
+
+if __name__ == "__main__":
+    planner = IslamicDailyPlanner ()
+    planner.run()
